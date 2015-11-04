@@ -11,12 +11,10 @@ def Boss(queueRd, queueWr, processCount=5, taskSize=30, tasksPerChild=20):
 	pool=Pool(processes=processCount, maxtasksperchild=tasksPerChild)
 
 	while True:
-		print "queued tasks:", len(queuedTasks)
-		print "pending urls:", len(pendingUrls)
 
 		cmd=CheckQueue(queueRd, pendingUrls)
-		print cmd
 		if cmd=="STOP":
+			pool.terminate()
 			return 0
 
 		if len(queuedTasks)<processCount**2:
@@ -35,14 +33,14 @@ def Boss(queueRd, queueWr, processCount=5, taskSize=30, tasksPerChild=20):
 				i+=1
 				continue
 			try:
-				urls, worktime, bytesRead, errors, invalidMeta, httpCodes=r.get(timeout=60)
-				queueWr.put([worktime, bytesRead, errors, invalidMeta, httpCodes])
+				urls, worktime, bytesRead, errors, httpCodes=r.get(timeout=60)
 			except Exception as ex:
-				queueWr.put("TaskError: "+str(ex))
+				queueWr.put(ex)
 				continue
 
 			newUrls=AddURLs(foundUrls, urls)
 			pendingUrls+=newUrls
+			queueWr.put([worktime, bytesRead, errors, httpCodes, len(newUrls)])
 
 		sleep(1)
 

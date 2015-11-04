@@ -8,14 +8,11 @@ from functions import ParseURL
 
 def Worker(task):
 	bytesRead=0
-	httpCodes=[0, 0, 0, 0, 0]
+	httpCodes=[0]*5
 	urlList=[]
 	start=time()
 	errors=0
-	invalidMeta=0
-	tooBig=0
-	#logging.basicConfig(level=logging.INFO)
-	
+
 	session=requests.Session()
 
 	for t in task:
@@ -30,9 +27,7 @@ def Worker(task):
 				break
 
 			httpCodes[(r.status_code/100)-1]+=1
-			if r.status_code!=200:
-				continue
-		  	if not ValidResponse(r):
+			if r.status_code!=200 or not ValidResponse(r):
 				continue
 
 			try:
@@ -42,7 +37,7 @@ def Worker(task):
 			bytesRead+=size
 			urlList.extend(urls)
 
-	return urlList, float("%.2f" % (time()-start)), bytesRead, errors, invalidMeta, httpCodes
+	return urlList, float("%.2f" % (time()-start)), bytesRead, errors, httpCodes
 
 def ValidResponse(r):
 	if "Content-Type" in r.headers:
