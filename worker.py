@@ -32,20 +32,9 @@ def Worker(task):
 			httpCodes[(r.status_code/100)-1]+=1
 			if r.status_code!=200:
 				continue
-			if "Content-Type" in r.headers:
-				if not "text" in r.headers["Content-Type"]:
-					invalidMeta+1
-					continue
-			else:
-				invalidMeta+=1
+		  	if not ValidResponse(r):
 				continue
-			if "Content-Length" in r.headers:
-				if int(r.headers["Content-Length"])>10*1024*1024:
-					invalidMeta+=1
-					continue
-			else:
-				invalidMeta+=1
-				continue
+
 			try:
 				size, urls=ReadResponse(r , t[0])
 			except:
@@ -53,7 +42,21 @@ def Worker(task):
 			bytesRead+=size
 			urlList.extend(urls)
 
-	return urlList, time()-start, bytesRead, errors, invalidMeta, httpCodes
+	return urlList, float("%.2f" % (time()-start)), bytesRead, errors, invalidMeta, httpCodes
+
+def ValidResponse(r):
+	if "Content-Type" in r.headers:
+		if not "text" in r.headers["Content-Type"]:
+			return False
+	else:
+		return False
+	if "Content-Length" in r.headers:
+		if int(r.headers["Content-Length"])>10*1024*1024:
+			return False
+	else:
+		return False
+	return True
+
 
 def ReadResponse(response, domain):
 	size=0

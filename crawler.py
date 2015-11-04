@@ -1,4 +1,4 @@
-from multiprocessing import Process
+from multiprocessing import Process, Queue
 
 from time import sleep
 from random import randint
@@ -13,40 +13,21 @@ class Crawler:
 		pass
 
 	def Start(self, processCount=5):
-		self.manager=manager.ManagerExt()
-		self.manager.start()
-		self.urlCache=self.manager.URLCache()
-		self.master=self.manager.Master(self.urlCache, processCount)
-
-
-		self.procMaster=Process(target=self.master.Loop)
-		self.procMaster.start()
-
+		self.bossQueueWr=Queue()
+		self.bossQueueRd=Queue()
+		self.boss=Process(target=manager.Boss, args=(self.bossQueueWr, self.bossQueueRd))
+		self.boss.start()
 
 	def Stop(self):
-		#self.procMaster.terminate()
-		self.master.Stop()
+		self.bossQueueWr.put("!STOP")
 
-	def Active(self):
-		return self.master.Active()
-		
 	def AddURLs(self, urls):
-		urlTup=[]
 		for url in urls:
-			urlTup.append(ParseURL(url))
-		self.master.AddURLs(urlTup)
-
-	def GetInfo(self):
-		return self.master.GetInfo()
-		
-	def FinishedTask(self):
-		return self.master.FinishedTask()
-		
-	def PopFinishedTask(self):
-		return self.master.PopFinishedTask()
-		
-	def GetSitesPerHost(self):
-		return self.master.GetSitesPerHost() 
+			self.bossQueueWr.put(ParseURL(url))
+			
+	def Update(self):
+		while self.bossQueueRd:
+			print self.bossQueueRd.get()
 
 #if __name__=="__main__":
 #	c=Crawler()
