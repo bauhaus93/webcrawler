@@ -3,7 +3,7 @@ from urlparse import urlparse
 def ParseURL(url):
 	p=urlparse(url)
 	return p.hostname, p.path
-	
+
 def FormatByte(byte):
     letters=[(0x400, "ki"), (0x100000, "Mi"), (0x40000000, "Gi")]
     for pair in reversed(letters):
@@ -23,5 +23,6 @@ def FormatTime(time):
 	h=time/3600
 	m=(time%3600)/60
 	#not correct: seconds (seem to be minutes)
-	s=m%60
+	#maybe now correct? needs to be checked (changed from m%60)
+	s=((time%3600))%60
 	return "%dh %dm %ds" % (h, m ,s)

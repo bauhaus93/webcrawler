@@ -19,6 +19,8 @@ def Boss(queueRd, queueWr, processCount=5, taskSize=30, tasksPerChild=20):
 			return 0
 		elif cmd=="TOR":
 			useTOR=True
+		elif "DUMP" in cmd:
+			DumpURLs(foundUrls, cmd[5:])
 
 		if len(queuedTasks)<processCount**2:
 			preparedTasks=CreateTasks(pendingUrls, taskSize)
@@ -36,14 +38,14 @@ def Boss(queueRd, queueWr, processCount=5, taskSize=30, tasksPerChild=20):
 				i+=1
 				continue
 			try:
-				urls, worktime, bytesRead, errors, httpCodes=r.get()
+				urls, worktime, bytesRead, errors, httpCodes, usedTOR=r.get()
 			except Exception as ex:
 				queueWr.put(ex)
 				continue
 
 			newUrls=AddURLs(foundUrls, urls)
 			pendingUrls+=newUrls
-			queueWr.put([worktime, bytesRead, errors, httpCodes, len(newUrls)])
+			queueWr.put([worktime, bytesRead, errors, httpCodes, usedTOR, len(newUrls)])
 
 		sleep(1)
 
@@ -78,7 +80,6 @@ def CreateTasks(pendingUrls, taskSize=30):
 	
 def AddURLs(foundUrls, urls):
 	newUrls=[]
-	f=open("fUrls.txt", "a")
 	for host, path in urls:
 		if host[:4]=="www.":
 			host=host[4:]
@@ -87,10 +88,14 @@ def AddURLs(foundUrls, urls):
 			if not path in foundUrls[host]:
 				foundUrls[host].append(path)
 				newUrls.append([host, path])
-				f.write(host+path+"\n")
 		else:
 			foundUrls.update({host:[path]})
 			newUrls.append([host, path])
-			f.write(host+path+"\n")
-	f.close()
 	return newUrls
+	
+def DumpURLs(foundUrls, filename):
+	f=open(filename, "w")
+	for host in foundUrls:
+		for path in foundUrls[host]:
+			f.write("%s%s\n" % (host, path))
+	f.close()

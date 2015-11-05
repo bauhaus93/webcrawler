@@ -18,8 +18,6 @@ def Worker(task, useTOR=False):
 		session=requesocks.session()
 		session.proxies={	"http" : 	"socks5://127.0.0.1:9050",
 							"https" : 	"socks5://127.0.0.1:9050"}
-		#response = session.get('http://httpbin.org/ip')
-		#print response.text
 	else:
 		session=requests.Session()
 
@@ -39,16 +37,18 @@ def Worker(task, useTOR=False):
 
 			httpCodes[(r.status_code/100)-1]+=1
 			if r.status_code!=200 or not ValidResponse(r):
+				errors+=1
 				continue
 
 			try:
 				size, urls=ReadResponse(r , t[0])
 			except:
+				errors+=1
 				continue
 			bytesRead+=size
 			urlList.extend(urls)
 
-	return urlList, float("%.2f" % (time()-start)), bytesRead, errors, httpCodes
+	return urlList, float("%.2f" % (time()-start)), bytesRead, errors, httpCodes, useTOR#c.UseTOR()
 
 def ValidResponse(r):
 	if "Content-Type" in r.headers:
