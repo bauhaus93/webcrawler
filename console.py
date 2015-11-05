@@ -8,6 +8,7 @@ import functions
 if __name__=="__main__":
 	c=Crawler()
 	c.Start()
+	c.UseTOR()
 	c.AddURLs(["//orf.at"])
 
 	while True:

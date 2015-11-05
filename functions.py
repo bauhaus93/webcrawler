@@ -3,7 +3,6 @@ from urlparse import urlparse
 def ParseURL(url):
 	p=urlparse(url)
 	return p.hostname, p.path
-
 	
 def FormatByte(byte):
     letters=[(0x400, "ki"), (0x100000, "Mi"), (0x40000000, "Gi")]

@@ -30,6 +30,9 @@ class Crawler:
 
 	def Stop(self):
 		self.bossQueueWr.put("!STOP")
+		
+	def UseTOR(self):
+		self.bossQueueWr.put("!TOR")
 
 	def AddURLs(self, urls):
 		for url in urls:
@@ -46,7 +49,7 @@ class Crawler:
 				http=msg.pop(0)
 				self.httpCode=map(lambda a, b: a+b, self.httpCode, http)
 				self.urlsFound+=msg.pop(0)
-			elif isinstance(Exception):
+			elif isinstance(msg, Exception):
 				self.taskExceptions+=1
 	
 	def Print(self):

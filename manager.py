@@ -10,17 +10,20 @@ def Boss(queueRd, queueWr, processCount=5, taskSize=30, tasksPerChild=20):
 	foundUrls={}
 	pool=Pool(processes=processCount, maxtasksperchild=tasksPerChild)
 
+	useTOR=False
 	while True:
 
 		cmd=CheckQueue(queueRd, pendingUrls)
 		if cmd=="STOP":
 			pool.terminate()
 			return 0
+		elif cmd=="TOR":
+			useTOR=True
 
 		if len(queuedTasks)<processCount**2:
 			preparedTasks=CreateTasks(pendingUrls, taskSize)
 			while preparedTasks:
-				queuedTasks.append(pool.apply_async(Worker, (preparedTasks.pop(0),)))
+				queuedTasks.append(pool.apply_async(Worker, (preparedTasks.pop(0), useTOR,)))
 			pendingUrls=[]
 
 		i=0
@@ -33,7 +36,7 @@ def Boss(queueRd, queueWr, processCount=5, taskSize=30, tasksPerChild=20):
 				i+=1
 				continue
 			try:
-				urls, worktime, bytesRead, errors, httpCodes=r.get(timeout=60)
+				urls, worktime, bytesRead, errors, httpCodes=r.get()
 			except Exception as ex:
 				queueWr.put(ex)
 				continue
@@ -48,9 +51,7 @@ def CheckQueue(queue, pendingUrls):
 	while not queue.empty():
 		cmd=queue.get()
 		if cmd[0]=="!":
-			cmd=cmd[1:]
-			if cmd=="STOP":
-				return "STOP"
+			return cmd[1:]
 		else:
 			pendingUrls.append(cmd)
 	return "PROCEED"

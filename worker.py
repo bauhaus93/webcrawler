@@ -6,14 +6,22 @@ import logging
 
 from functions import ParseURL
 
-def Worker(task):
+def Worker(task, useTOR=False):
 	bytesRead=0
 	httpCodes=[0]*5
 	urlList=[]
 	start=time()
 	errors=0
 
-	session=requests.Session()
+	if useTOR:
+		import requesocks
+		session=requesocks.session()
+		session.proxies={	"http" : 	"socks5://127.0.0.1:9050",
+							"https" : 	"socks5://127.0.0.1:9050"}
+		#response = session.get('http://httpbin.org/ip')
+		#print response.text
+	else:
+		session=requests.Session()
 
 	for t in task:
 		urls=[]
@@ -21,8 +29,11 @@ def Worker(task):
 		for path in t[1]:
 			url="http://"+host+path
 			try:
-				r=session.get(url, timeout=3.0, stream=True, allow_redirects=True)
-			except:
+				if useTOR:
+					r=session.get(url, timeout=3.0, prefetch=False, allow_redirects=True)
+				else:
+					r=session.get(url, timeout=3.0, stream=True, allow_redirects=True)
+			except Exception as ex:
 				errors+=1
 				break
 
