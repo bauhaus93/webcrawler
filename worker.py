@@ -48,7 +48,7 @@ def Worker(task, useTOR=False):
 			bytesRead+=size
 			urlList.extend(urls)
 
-	return urlList, float("%.2f" % (time()-start)), bytesRead, errors, httpCodes, useTOR#c.UseTOR()
+	return urlList, float("%.2f" % (time()-start)), bytesRead, errors, httpCodes, useTOR
 
 def ValidResponse(r):
 	if "Content-Type" in r.headers:

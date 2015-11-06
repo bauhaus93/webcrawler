@@ -1,5 +1,5 @@
 /old_crawls/
 *.pyc
 *.txt
-*.cpr
+*.geany
 LICENSE

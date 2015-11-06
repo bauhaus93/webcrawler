@@ -87,9 +87,13 @@ class Crawler:
 				self.taskExceptions+=1
 		if self.tasksToFile:
 			f.close()
-	
-	def Print(self):
-		items=(	"TOR used",
+
+	def GetTasks(self):
+		return self.taskData
+
+	@staticmethod
+	def GetInfoNames():
+		return ("TOR used",
 				"time active",
 				"total worktime",
 				"tasks finished",
@@ -102,6 +106,16 @@ class Crawler:
 				"http 5xx",
 				"errors",
 				"task exceptions")
+
+	def GetInfoValues(self):
+		info=[]
+		data=self.GetInfo()
+		for name in Crawler.GetInfoNames():
+			info.append(data[name])
+		return info
+	
+	def Print(self):
+		items=Crawler.GetInfoNames()
 		maxLen=reduce(lambda a, b: max(a, b), map(lambda s: len(s), items))
 		maxLen+=2
 		info=self.GetInfo()
