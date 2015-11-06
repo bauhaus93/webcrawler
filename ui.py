@@ -15,21 +15,20 @@ class CrawlerFrame(wx.Frame):
 		self.gridTasks=GridTasks(self, TaskData.GetFieldNames())
 
 		self.inputStatic=wx.StaticText(self, label="Command", style=wx.ALIGN_CENTRE_HORIZONTAL)
-		self.textInput=wx.TextCtrl(self)
+		self.textInput=wx.TextCtrl(self, style=wx.TE_PROCESS_ENTER)
+		self.textInput.Bind(wx.EVT_TEXT_ENTER, self.CmdEnter)
 
 		self.sizerHoriz=wx.BoxSizer(wx.HORIZONTAL)
 		self.sizerHoriz.Add(self.gridInfo, 1, wx.EXPAND|wx.ALL)
 		self.sizerHoriz.Add(self.gridTasks, 1, wx.EXPAND|wx.ALL)
 
 		self.sizerVert=wx.BoxSizer(wx.VERTICAL)
-		self.sizerVert.Add(self.sizerHoriz)
+		self.sizerVert.Add(self.sizerHoriz, 5)
 		
 		sH=wx.BoxSizer(wx.HORIZONTAL)
-		sH.Add(self.inputStatic)
-		sH.Add(self.textInput)
-		self.sizerVert.Add(sH, wx.EXPAND|wx.BOTTOM)
-		
-		
+		sH.Add(self.inputStatic, flag=wx.ALL, border=5)
+		sH.Add(self.textInput, 1, flag=wx.ALL | wx.ALIGN_LEFT, border=3)
+		self.sizerVert.Add(sH, 0, wx.EXPAND)
 
 		self.SetAutoLayout(True)
 		self.SetSizer(self.sizerVert)
@@ -59,6 +58,16 @@ class CrawlerFrame(wx.Frame):
 			self.crawler.Update()
 			self.gridInfo.Update(self.crawler.GetInfoValues())
 			self.gridTasks.AddTasks(self.crawler.GetTasks())
+
+	def CmdEnter(self, event):
+		cmd=self.textInput.GetValue()
+
+		if cmd=="exit":
+			self.StopCrawler(event)
+		elif cmd=="tor":
+			self.crawler.ToggleTOR()
+
+		self.textInput.Clear()
 
 
 if __name__=="__main__":

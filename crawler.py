@@ -13,7 +13,7 @@ class Crawler:
 	def __init__(self):
 		self.Init()
 
-	def Start(self, processCount=5):
+	def Start(self, processCount=10):
 		self.bossQueueWr=Queue()
 		self.bossQueueRd=Queue()
 		self.boss=Process(target=manager.Boss, args=(self.bossQueueWr, self.bossQueueRd))
@@ -31,19 +31,24 @@ class Crawler:
 		self.urlsFound=0
 		self.tasksToFile=False
 		self.taskData=[]
+		self.queuedTasks=0
+		self.pendingUrls=0
+		self.cacheSize=0
+
 
 	def Stop(self):
 		self.bossQueueWr.put("!STOP")
 
-	def UseTOR(self):
-		if not self.useTOR:
+	def ToggleTOR(self):
+		self.useTOR=not self.useTOR
+		if self.useTOR:
 			s=socket(AF_INET, SOCK_STREAM)
 			try:
 				s.connect(("127.0.0.1", 9050))
 				s.close()
 			except:
+				self.useTOR=False
 				return
-			self.useTOR=True
 		self.bossQueueWr.put("!TOR")
 		
 	def DumpURLs(self, filename):
@@ -70,19 +75,25 @@ class Crawler:
 	def Update(self):
 		if self.tasksToFile:
 			f=open(self.filename, "a")
+		self.bossQueueWr.put("!INFO")
 		while not self.bossQueueRd.empty():
 			msg=self.bossQueueRd.get()
 			if isinstance(msg, list):
-				task=TaskData(msg)
-				self.totalWork+=task.GetWorkTime()
-				self.totalRead+=task.GetByteRead()
-				self.errors+=task.GetErrors()
-				http=task.GetHTTP()
-				self.httpCode=map(lambda a, b: a+b, self.httpCode, http)
-				self.urlsFound+=task.GetURLsFound()
-				self.taskData.append(task)
-				if self.tasksToFile:
-					f.write("\n"+str(task))
+				if len(msg)==3:
+					self.queuedTasks=msg.pop(0)
+					self.pendingUrls=msg.pop(0)
+					self.cacheSize=msg.pop(0)
+				else:
+					task=TaskData(msg)
+					self.totalWork+=task.GetWorkTime()
+					self.totalRead+=task.GetByteRead()
+					self.errors+=task.GetErrors()
+					http=task.GetHTTP()
+					self.httpCode=map(lambda a, b: a+b, self.httpCode, http)
+					self.urlsFound+=task.GetURLsFound()
+					self.taskData.append(task)
+					if self.tasksToFile:
+						f.write("\n"+str(task))
 			elif isinstance(msg, Exception):
 				self.taskExceptions+=1
 		if self.tasksToFile:
@@ -94,11 +105,15 @@ class Crawler:
 	@staticmethod
 	def GetInfoNames():
 		return ("TOR used",
+				"workers",
 				"time active",
 				"total worktime",
 				"tasks finished",
+				"queued tasks",
 				"byte read",
 				"urls found",
+				"pending urls",
+				"cache size", 
 				"http 1xx",
 				"http 2xx",
 				"http 3xx",
@@ -137,5 +152,12 @@ class Crawler:
 		info["errors"]=str(self.errors)
 		info["task exceptions"]=str(self.taskExceptions)
 		info["TOR used"]=str(self.useTOR)
+		info["queued tasks"]=str(self.queuedTasks)
+		info["pending urls"]=str(self.pendingUrls)
+		info["workers"]=str(self.processCount)
+		if self.cacheSize==0:
+			info["cache size"]="inactive"
+		else:
+			info["cache size"]=FormatByte(self.cacheSize)
 		return info
 

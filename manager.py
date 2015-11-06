@@ -1,8 +1,13 @@
 from multiprocessing import Pool
 from time import sleep, time
+from os import remove
+from os.path import getsize as GetFileSize
 
 from worker import Worker
 from functions import ParseURL, FormatByte
+
+cacheName="pending_urls.cache"
+cacheThreshold=500000
 
 def Boss(queueRd, queueWr, processCount=5, taskSize=30, tasksPerChild=20):
 	pendingUrls=[]
@@ -11,18 +16,45 @@ def Boss(queueRd, queueWr, processCount=5, taskSize=30, tasksPerChild=20):
 	pool=Pool(processes=processCount, maxtasksperchild=tasksPerChild)
 
 	useTOR=False
+	cachedPending=False
 	while True:
 
 		cmd=CheckQueue(queueRd, pendingUrls)
 		if cmd=="STOP":
+			try:
+				remove(cacheName)
+			except:
+				pass
 			pool.terminate()
 			return 0
 		elif cmd=="TOR":
-			useTOR=True
+			useTOR=not useTOR
+		elif cmd=="INFO":
+			if cachedPending==False:
+				cacheSize=0
+			else:
+				try:
+					cacheSize=GetFileSize(cacheName)
+				except:
+					cacheSize=0
+			queueWr.put([len(queuedTasks), len(pendingUrls), cacheSize])
 		elif "DUMP" in cmd:
 			DumpURLs(foundUrls, cmd[5:])
 
+		if len(pendingUrls)>cacheThreshold:
+			if cachedPending==True:
+				mode="a"
+			else:
+				mode="w"
+			CachePendingURLs(pendingUrls, cacheName, mode)
+			pendingUrls=[]
+			cachedPending=True
+			
+
 		if len(queuedTasks)<processCount**2:
+			if cachedPending==True:
+				pendingUrls+=ReadPendingCache(cacheName)
+				cachedPending=False
 			preparedTasks=CreateTasks(pendingUrls, taskSize)
 			while preparedTasks:
 				queuedTasks.append(pool.apply_async(Worker, (preparedTasks.pop(0), useTOR,)))
@@ -99,3 +131,20 @@ def DumpURLs(foundUrls, filename):
 		for path in foundUrls[host]:
 			f.write("%s%s\n" % (host, path))
 	f.close()
+
+def CachePendingURLs(pendingUrls, filename, mode):
+	f=open(filename, mode)
+	for host, path in pendingUrls:
+		f.write(host+" "+path+"\n")
+	f.close()
+
+def ReadPendingCache(filename):
+	f=open(filename, "r")
+	cache=[]
+	line=f.readline()
+	while len(line)>1:
+		cache.append(tuple(line.split(" ")))
+		line=f.readline()
+	f.close()
+	remove(filename)
+	return cache
