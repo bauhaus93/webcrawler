@@ -49,16 +49,18 @@ def Boss(queueRd, queueWr, processCount=5, taskSize=30, tasksPerChild=20):
 			CachePendingURLs(pendingUrls, cacheName, mode)
 			pendingUrls=[]
 			cachedPending=True
-			
 
-		if len(queuedTasks)<processCount**2:
-			if cachedPending==True:
-				pendingUrls+=ReadPendingCache(cacheName)
-				cachedPending=False
-			preparedTasks=CreateTasks(pendingUrls, taskSize)
+		if len(queuedTasks)<processCount:
+			takeNext=2*processCount*taskSize
+			if len(pendingUrls)<takeNext:
+				if cachedPending==True:
+					pendingUrls+=ReadPendingCache(cacheName)
+					cachedPending=False
+			takeNext=min(takeNext, len(pendingUrls))
+			preparedTasks=CreateTasks(pendingUrls[:takeNext], taskSize)
+			pendingUrls=pendingUrls[takeNext:]
 			while preparedTasks:
 				queuedTasks.append(pool.apply_async(Worker, (preparedTasks.pop(0), useTOR,)))
-			pendingUrls=[]
 
 		i=0
 		while queuedTasks:
@@ -78,7 +80,7 @@ def Boss(queueRd, queueWr, processCount=5, taskSize=30, tasksPerChild=20):
 			newUrls=AddURLs(foundUrls, urls)
 			pendingUrls+=newUrls
 			queueWr.put([worktime, bytesRead, errors, httpCodes, usedTOR, len(newUrls)])
-
+		pendingUrls.sort()
 		sleep(1)
 
 def CheckQueue(queue, pendingUrls):
@@ -88,6 +90,7 @@ def CheckQueue(queue, pendingUrls):
 			return cmd[1:]
 		else:
 			pendingUrls.append(cmd)
+			pendingUrls.sort()
 	return "PROCEED"
 
 def CreateTasks(pendingUrls, taskSize=30):
