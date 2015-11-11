@@ -4,6 +4,7 @@ from io import BufferedReader
 import re
 import logging
 
+from sitedata import SiteData
 from functions import ParseURL
 
 def Worker(task, useTOR=False):
@@ -41,7 +42,7 @@ def Worker(task, useTOR=False):
 				continue
 
 			try:
-				size, urls=ReadResponse(r , t[0])
+				size, urls=ReadResponse(r, host)
 			except:
 				errors+=1
 				continue
@@ -64,7 +65,7 @@ def ValidResponse(r):
 	return True
 
 
-def ReadResponse(response, domain):
+def ReadResponse(response, host):
 	size=0
 	urls=[]
 	for chunk in response.iter_content(chunk_size=512*1024):
@@ -73,7 +74,7 @@ def ReadResponse(response, domain):
 		for m in re.findall("href=\"[a-z0-9.:/]+\"", chunk, re.IGNORECASE):
 			d, path=ParseURL(m[6:-1])
 			if d==None:
-				d=domain
+				d=host
 			if len(path)>0:
 				if path[0]!="/":
 					path="/"+path

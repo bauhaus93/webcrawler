@@ -6,9 +6,9 @@ import functions
 
 if __name__=="__main__":
 	c=Crawler()
-	c.Start()
-	c.ToggleTOR()
-	c.EnableTasksToFile("tasks.txt")
+	c.Start(3)
+	#c.ToggleTOR()
+	#c.EnableTasksToFile("tasks.txt")
 
 	c.AddURLs(["//orf.at"])
 
@@ -19,7 +19,9 @@ if __name__=="__main__":
 		sleep(1)
 		os.system("cls")
 		i+=1
-		if (i%60)==0:
-			c.DumpURLs("dump.txt")
+		if i>10:
+			break
+		#if (i%60)==0:
+		#c.DumpURLs("dump.txt")
 
-	c.Stop()
+	c.Join("lolo.save")

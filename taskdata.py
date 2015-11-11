@@ -13,7 +13,7 @@ class TaskData:
 	def GetSize(self):
 		size=self.errors
 		for i in range(5):
-			size+=self.httpCode(i)
+			size+=self.GetHTTP()[i]
 			
 	def GetWorkTime(self):
 		return self.worktime
@@ -55,3 +55,12 @@ class TaskData:
 			out+="%3d | " % self.httpCode[i]
 		out+="%3d | %10d | %8s" % (self.errors, self.urlsFound, self.usedTOR)
 		return out
+
+	def Save(self, f):
+		f.write(str(self.GetWorkTime())+" ")
+		f.write(str(self.GetByteRead())+" ")
+		f.write(str(self.GetErrors())+" ")
+		for i in range(5):
+			f.write(str(self.GetHTTP()[i])+" ")
+		f.write(str(self.UsedTOR())+" ")
+		f.write(str(self.GetURLsFound())+"\n")

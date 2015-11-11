@@ -16,7 +16,7 @@ class Crawler:
 	def Start(self, processCount=10):
 		self.bossQueueWr=Queue()
 		self.bossQueueRd=Queue()
-		self.boss=Process(target=manager.Boss, args=(self.bossQueueWr, self.bossQueueRd))
+		self.boss=Process(target=manager.Main, args=(self.bossQueueWr, self.bossQueueRd))
 		self.boss.start()
 		self.processCount=processCount
 		self.startTime=time()
@@ -34,10 +34,54 @@ class Crawler:
 		self.queuedTasks=0
 		self.pendingUrls=0
 		self.cacheSize=0
-
+		self.timeOffset=0
 
 	def Stop(self):
 		self.bossQueueWr.put("!STOP")
+
+	def Finish(self):
+		self.bossQueueWr.put("!FINISH")
+
+	def Save(self, filename):
+		f=open(filename, "w")
+		f.write("GENERAL_DATA\n")
+		f.write(str(self.useTOR)+"\n")
+		f.write(str(self.timeOffset+time()-self.startTime)+"\n")
+		f.write(str(self.taskExceptions)+"\n")
+		f.write("TASK_DATA\n")
+		for task in self.taskData:
+			task.Save(f)
+		f.close()
+		self.bossQueueWr.put("!SAVE "+filename)
+
+	def Load(self, filename):
+		self.Init()
+		
+		f=open(filename, "r")
+		
+		if f.readline()[:-1]!="GENERAL_DATA":
+			print "Format Error"
+		if f.readline()[:-1]=="True":
+			self.useTOR=True
+		self.timeOffset=float(f.readline())
+		self.taskExceptions=int(f.readline())
+		if f.readline()[:-1]!="TASK_DATA":
+			print "Format Error"
+		for line in f.readline():
+			line=line[:-1]
+			
+			
+
+		f.close()
+		self.bossQueueWr.put("!LOAD "+filename)
+
+	def Join(self, savefile=None):
+		self.Finish()
+		while self.HasQueuedTasks():
+			sleep(1)
+		if savefile:
+			self.Save(savefile)
+		self.Stop()
 
 	def ToggleTOR(self):
 		self.useTOR=not self.useTOR
@@ -102,6 +146,13 @@ class Crawler:
 	def GetTasks(self):
 		return self.taskData
 
+	def HasQueuedTasks(self):
+		self.Update()
+		print self.queuedTasks
+		return self.queuedTasks!=0
+
+
+
 	@staticmethod
 	def GetInfoNames():
 		return ("TOR used",
@@ -142,7 +193,7 @@ class Crawler:
 
 	def GetInfo(self):
 		info={}
-		info["time active"]=FormatTime(time()-self.startTime)
+		info["time active"]=FormatTime(self.timeOffset+time()-self.startTime)
 		info["total worktime"]=FormatTime(self.totalWork)
 		info["tasks finished"]=str(len(self.taskData))
 		info["byte read"]=FormatByte(self.totalRead)
