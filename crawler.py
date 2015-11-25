@@ -10,18 +10,21 @@ import manager
 
 class Crawler:
 
-	def __init__(self):
+	def __init__(self, loadFile=None):
 		self.Init()
+		if loadFile:
+			self.Load(loadFile)
 
 	def Start(self, processCount=10):
-		self.bossQueueWr=Queue()
-		self.bossQueueRd=Queue()
 		self.boss=Process(target=manager.Main, args=(self.bossQueueWr, self.bossQueueRd))
 		self.boss.start()
 		self.processCount=processCount
 		self.startTime=time()
 
 	def Init(self):
+		self.wasRestored=False
+		self.bossQueueWr=Queue()
+		self.bossQueueRd=Queue()
 		self.useTOR=False
 		self.totalWork=0
 		self.totalRead=0
@@ -54,6 +57,7 @@ class Crawler:
 		f.close()
 		self.bossQueueWr.put("!SAVE "+filename)
 
+
 	def Load(self, filename):
 		self.Init()
 		
@@ -67,13 +71,38 @@ class Crawler:
 		self.taskExceptions=int(f.readline())
 		if f.readline()[:-1]!="TASK_DATA":
 			print "Format Error"
-		for line in f.readline():
-			line=line[:-1]
-			
-			
 
+			
+		if self.tasksToFile:
+			fTTF=open(self.filename, "a")
+				
+		for line in f:
+			line=line[:-1]
+			if line=="PENDING_URLS":
+				break
+			td=list(line.split(" "))
+			td=map(lambda n, ff: ff(n), td, TaskData.GetFieldFormats())
+			td[2]=list(td[2:7])
+			td=td[:3]+td[7:]
+			
+			task=TaskData(td)
+			
+			self.totalWork+=task.GetWorkTime()
+			self.totalRead+=task.GetByteRead()
+			self.errors+=task.GetErrors()
+			http=task.GetHTTP()
+			self.httpCode=map(lambda s, a: s+a, self.httpCode, http)
+			self.urlsFound+=task.GetURLsFound()
+
+			self.taskData.append(task)
+			if self.tasksToFile:
+				fTTF.write("\n"+str(task))
+
+		if self.tasksToFile:
+			fTTF.close()
 		f.close()
 		self.bossQueueWr.put("!LOAD "+filename)
+		self.wasRestored=True
 
 	def Join(self, savefile=None):
 		self.Finish()
@@ -110,6 +139,9 @@ class Crawler:
 		f.write(" urls found |")
 		f.write(" TOR used")
 		f.write("\n"+"-"*82)
+		if self.wasRestored:
+			for t in self.taskData:
+				f.write("\n"+str(t))
 		f.close()
 
 	def AddURLs(self, urls):

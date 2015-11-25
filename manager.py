@@ -163,7 +163,7 @@ class Manager:
 				continue
 
 			newCount=self.AddFoundURLs(urls)
-			self.queueWr.put([worktime, bytesRead, errors, httpCodes, usedTOR, newCount])
+			self.queueWr.put([worktime, bytesRead, httpCodes, errors, newCount, usedTOR])
 
 	def CreateTasks(self, takeCount):
 		taskDict={}
@@ -214,5 +214,22 @@ class Manager:
 		for host in self.foundUrls:
 			for path in self.foundUrls[host]:
 				f.write(host+" "+path+"\n")
+
+	def Load(self, path):
+		with open(path, "r") as f:
+			state=0
+			for line in f:
+				line=line[:-1]
+				if state==0 and line=="PENDING_URLS":
+					state=1
+					continue
+				elif state==1 and line=="FOUND_URLS":
+					state=2
+					continue
+
+				if state==1:
+					self.pendingUrls.append(tuple(line.split(" ")))
+				elif state==2:
+					self.AddFoundURLs([tuple(line.split(" "))])
 		
 

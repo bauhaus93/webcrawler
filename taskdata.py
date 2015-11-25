@@ -5,10 +5,10 @@ class TaskData:
 	def __init__(self, msg):
 		self.worktime=msg.pop(0)
 		self.byteRead=msg.pop(0)
-		self.errors=msg.pop(0)
 		self.httpCode=msg.pop(0)
-		self.usedTOR=msg.pop(0)
+		self.errors=msg.pop(0)
 		self.urlsFound=msg.pop(0)
+		self.usedTOR=msg.pop(0)
 	
 	def GetSize(self):
 		size=self.errors
@@ -37,6 +37,10 @@ class TaskData:
 	def GetFieldNames():
 		return ("work time", "byte read", "http 1xx", "http 2xx", "http 3xx", "http 4xx", "http5xx", "errors", "urls found", "TOR used")
 
+	@staticmethod
+	def GetFieldFormats():
+		return (float, int, int, int, int, int, int, int, int, lambda s: s=="True")
+
 	def GetFieldValues(self):
 		return (FormatTime(self.worktime),
 				FormatByte(self.byteRead),
@@ -59,8 +63,8 @@ class TaskData:
 	def Save(self, f):
 		f.write(str(self.GetWorkTime())+" ")
 		f.write(str(self.GetByteRead())+" ")
-		f.write(str(self.GetErrors())+" ")
 		for i in range(5):
 			f.write(str(self.GetHTTP()[i])+" ")
-		f.write(str(self.UsedTOR())+" ")
-		f.write(str(self.GetURLsFound())+"\n")
+		f.write(str(self.GetErrors())+" ")
+		f.write(str(self.GetURLsFound())+" ")
+		f.write(str(self.UsedTOR())+"\n")
